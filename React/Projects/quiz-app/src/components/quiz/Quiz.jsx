@@ -1,89 +1,77 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
+import Confetti from "react-confetti";
+import { useWindowSize } from "@react-hook/window-size";
 import { data } from "../../assets/data.js";
+import "./Quiz.css";
 
 const Quiz = () => {
-  let [index, setIndex] = useState(0);
-  const [questions, setQuestions] = useState(data[index]);
-  const [lock, setLock] = useState(false);
-  let [score, setScore] = useState(0);
+  const [index, setIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [score, setScore] = useState(0);
   const [result, setResult] = useState(false);
 
-  const option1 = useRef(null);
-  const option2 = useRef(null);
-  const option3 = useRef(null);
-  const option4 = useRef(null);
+  const currentQuestion = data[index];
+  const [width, height] = useWindowSize(); // to auto-adjust confetti
 
-  const option_box = [option1, option2, option3, option4];
+  const handleOptionClick = (optionIndex) => {
+    setSelectedOption((prev) => (prev === optionIndex ? null : optionIndex));
+  };
 
-  const checkAns = (e, ans) => {
-    if (!lock) {
-      if (questions.ans === ans) {
-        e.target.classList.add("correct");
-      } else {
-        e.target.classList.add("wrong");
-        option_box[questions.ans - 1].current.classList.add("correct");
-        setLock(true);
-      }
+  const handleNext = () => {
+    if (selectedOption === currentQuestion.ans) {
+      setScore(score + 1);
+    }
+
+    if (index < data.length - 1) {
+      setIndex(index + 1);
+      setSelectedOption(null);
+    } else {
+      setResult(true); // 🎉 Trigger result + confetti
     }
   };
 
-  const next = () => {
-    if (lock) {
-      if (index === data.length - 1) {
-        setResult(true);
-        return;
-      }
-      setIndex(++index);
-      setQuestions(data[index]);
-      setLock(false);
-      option_box.forEach((el) => {
-        el.current.classList.remove("correct");
-        el.current.classList.remove("wrong");
-      });
-    }
-  };
-
-  const reset = () => {
+  const resetQuiz = () => {
     setIndex(0);
-    setQuestions(data[0]);
-    setLock(false);
-    setResult(false);
+    setSelectedOption(null);
     setScore(0);
+    setResult(false);
   };
 
   return (
     <div className="container">
       <h1>Quiz App</h1>
       <hr />
+
       {result ? (
         <>
-          <h2>
-            Your score {score} out of {}
-          </h2>
-          <button onClick={reset}>Reset</button>
+          <Confetti width={width} height={height} numberOfPieces={300} />
+          <h2 className="congratsText">🎉 Congratulations!</h2>
+          <p className="scoreText">
+            You scored <strong>{score}</strong>/<strong>{data.length}</strong>
+          </p>
+          <button onClick={resetQuiz}>Restart Quiz</button>
         </>
       ) : (
         <>
-          <h2>
-            {index + 1}.{questions.question}
+          <h2 className="question">
+            {index + 1}. {currentQuestion.question}
           </h2>
           <ul>
-            <li ref={option1} onClick={(e) => checkAns(e, 1)}>
-              {questions.option1}
-            </li>
-            <li ref={option2} onClick={(e) => checkAns(e, 2)}>
-              {questions.option2}
-            </li>
-            <li ref={option3} onClick={(e) => checkAns(e, 3)}>
-              {questions.option3}
-            </li>
-            <li ref={option4} onClick={(e) => checkAns(e, 4)}>
-              {questions.option4}
-            </li>
+            {[1, 2, 3, 4].map((i) => (
+              <li
+                key={i}
+                className={selectedOption === i ? "selected" : ""}
+                onClick={() => handleOptionClick(i)}
+              >
+                {currentQuestion[`option${i}`]}
+              </li>
+            ))}
           </ul>
-          <button onClick={next}>Next</button>
+          <button onClick={handleNext} disabled={selectedOption === null}>
+            {index === data.length - 1 ? "Finish" : "Next"}
+          </button>
           <div className="index">
-            {index + 1} of {data.length}
+            Question {index + 1} of {data.length}
           </div>
         </>
       )}
